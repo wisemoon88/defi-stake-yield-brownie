@@ -1,4 +1,4 @@
-//SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -18,7 +18,7 @@ contract TokenFarm is Ownable {
     //add allowed token
     //getEthValue
     address[] public allowedTokens; //this is a list of allowed tokens to be staked
-    IERC20 public dappToken;
+    IERC20 public dappToken; //defining the dapptoken as a ERC20 type
 
     constructor(address _dappTokenAddress) public {
         dappToken = IERC20(_dappTokenAddress); //defining dapptoken variable as a dapptoken token from dapptoken.sol
@@ -29,28 +29,30 @@ contract TokenFarm is Ownable {
         public
         onlyOwner
     {
-        tokenPriceFeedMapping[_token] = _priceFeed;
+        tokenPriceFeedMapping[_token] = _priceFeed; // this mapping is to set the address of the price feed based on the token key
     }
 
     //function that will issue token as a reward for staking. for 1 ether give 1 dapptoken, for dai, need to covnert to eth first and then provide 1 dapptoken
     function issueTokens() public onlyOwner {
+        //looping through the stakers(ie user address) list so that we can gather the totalvalue staked and transfer a corrosponding amount of dapptoken
         for (
             uint256 stakersIndex = 0;
             stakersIndex < stakers.length;
             stakersIndex++
         ) {
-            address recipient = stakers[stakersIndex];
-            address userTotalValue = getUserTotalValue(recipient);
+            address recipient = stakers[stakersIndex]; //setting recipient to the current staker address in the loop
+            uint256 userTotalValue = getUserTotalValue(recipient); //getting the total value from all the tokens by using the getTotalValue function
 
-            //send them token reward based on total value locked
+            //send them token reward based on total value of all staked token locked
             dappToken.transfer(recipient, userTotalValue); //token farm contract is the contract holding the dapptoken
         }
     }
 
-    //function to get UserTotalValue,  user will get the value instead of protocol issuing, more gas efficient.  totalvalue across all owned tokens by user
+    //function to get UserTotalValue,  user will get the value instead of protocol issuing, more gas efficient.  totalvalue across all owned tokens by user tokens are coverted to usd
     function getUserTotalValue(address _user) public view returns (uint256) {
         uint256 totalValue = 0;
-        require(uniqueTokensStaked[_user] > 0, "no staked tokens");
+        require(uniqueTokensStaked[_user] > 0, "no staked tokens"); //require atleast a certain amount of token staked
+        //looping through the allowed tokens list and see if staker has an amout staked of that token.  then sum up all the value of the staked token as a total value
         for (
             uint256 allowedTokensIndex = 0;
             allowedTokensIndex < allowedTokens.length;
@@ -79,19 +81,19 @@ contract TokenFarm is Ownable {
         return ((stakingBalance[_token][_user] * price) / (10**decimals));
     }
 
-    //function to get the price of the token
+    //function to get the price of the token so that all token will have the same basis price
     function getTokenValue(address _token)
         public
         view
         returns (uint256, uint256)
     {
         //will need to use chainlink pricefeeds
-        address priceFeedAddress = tokenPriceFeedMapping[_token];
+        address priceFeedAddress = tokenPriceFeedMapping[_token]; //storing the address of the price feed contract inside the pricefeedaddress variable obtained from mapping
         AggregatorV3Interface priceFeed = AggregatorV3Interface(
             priceFeedAddress
         ); //this is defining the priceFeed contract by utilizing the interface
-        (, int256 price, , , , ) = priceFeed.latestRoundData();
-        uint256 decimals = priceFeed.decimals();
+        (, int256 price, , , ) = priceFeed.latestRoundData(); // this is getting the price conversion from the latest round data function which returns several values
+        uint256 decimals = priceFeed.decimals(); //nneed to get decimals as well to use in conversion formula
         return (uint256(price), decimals);
     }
 
@@ -111,6 +113,15 @@ contract TokenFarm is Ownable {
         if (uniqueTokensStaked[msg.sender] == 1) {
             stakers.push(msg.sender);
         }
+    }
+
+    //function to unstake token
+    function unstakeTokens(address _token) public {
+        uint256 balance = stakingBalance[_token][msg.sender]; //getting the balace of sender
+        require(balance > 0, "staking balance cannot be 0");
+        IERC20(_token).transfer(msg.sender, balance); //transferring out the balance from the contract back to the sender
+        stakingBalance[_token][msg.sender] = 0; //zeroiing out the mapping sinice the balance has been transfered out
+        uniqueTokensStaked[msg.sender] = uniqueTokensStaked[msg.sender] - 1; //zerooing out the amount of unique token staked since the balance hass been withdrawn
     }
 
     //function to determine if token staked is unique or not and therefore if needed to update the stakes list
