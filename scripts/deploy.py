@@ -8,7 +8,7 @@ import shutil
 
 KEPT_BALANCE = Web3.toWei(100, "ether")
 
-
+# this function is to deploy token farm and dapp token
 def deploy_token_farm_and_dapp_token(front_end_update=False):
     account = get_account()
     dapp_token = DappToken.deploy({"from": account})
@@ -25,6 +25,7 @@ def deploy_token_farm_and_dapp_token(front_end_update=False):
     # dapp_token, weth_token, fau_token/dai
     weth_token = get_contract("weth_token")
     fau_token = get_contract("fau_token")
+    # this dictionary is to pair the corrosponding token with its associated price feed contract
     dict_of_allowed_tokens = {
         dapp_token: get_contract("dai_usd_price_feed"),
         fau_token: get_contract("dai_usd_price_feed"),
@@ -36,6 +37,7 @@ def deploy_token_farm_and_dapp_token(front_end_update=False):
     return token_farm, dapp_token
 
 
+# add allowed tokens to array and set the price feed contract accordingly to each token
 def add_allowed_tokens(token_farm, dict_of_allowed_tokens, account):
     for token in dict_of_allowed_tokens:
         add_tx = token_farm.addAllowedTokens(token.address, {"from": account})

@@ -98,7 +98,7 @@ contract TokenFarm is Ownable {
     }
 
     //function takes in amount to stake and the token contract address
-    function stakeToken(uint256 _amount, address _token) public {
+    function stakeTokens(uint256 _amount, address _token) public {
         //what types of token can they stake?
         //how much can they stake?
 
